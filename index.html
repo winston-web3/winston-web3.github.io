@@ -49,17 +49,12 @@
 
     <section id="practice" class="section">
       <h2>練習</h2>
-      <div class="card" id="practiceCard">
-        <div class="question">翻譯: "I am a student."</div>
-        <button class="choice" onclick="checkAnswer('A Am Am-Mm-Am')">A Am Am-Mm-Am</button>
-        <button class="choice" onclick="checkAnswer('A Mm Am-Am')">A Mm Am-Am</button>
-        <button class="choice" onclick="checkAnswer('Am A Am-Ma')">Am A Am-Ma</button>
-        <div id="feedback" class="answer"></div>
-      </div>
+      <div class="quiz" id="practiceContainer"></div>
     </section>
 
     <section id="grammar" class="section">
       <h2>文法課程</h2>
+      <div id="grammarContainer"></div>
     </section>
 
     <section id="editor" class="section">
@@ -72,14 +67,16 @@
   </main>
 
   <script>
-    // 改為從外部 JSON 載入完整單字
     let words = [];
     fetch('am_words.json')
       .then(response => response.json())
       .then(data => {
         words = data;
         renderCards();
-      });
+        renderPractice();
+        renderGrammar();
+      })
+      .catch(err => console.error('JSON 載入錯誤:', err));
 
     const container = document.getElementById('cardsContainer');
 
@@ -98,6 +95,7 @@
         a.className = 'answer';
         a.dataset.zh = w.zh;
         a.dataset.en = w.en;
+        a.dataset.am = w.am;
         a.textContent = w.zh;
 
         card.appendChild(q);
@@ -106,20 +104,73 @@
       });
     }
 
+    function renderPractice() {
+      const practiceContainer = document.getElementById('practiceContainer');
+      practiceContainer.innerHTML = '';
+      const sample = {
+        question: '翻譯: "I am a student."',
+        choices: ['A Am Am-Mm-Am','A Mm Am-Am','Am A Am-Ma'],
+        answer: 'A Am Am-Mm-Am'
+      };
+
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const q = document.createElement('div');
+      q.className = 'question';
+      q.textContent = sample.question;
+      card.appendChild(q);
+
+      sample.choices.forEach(choice => {
+        const btn = document.createElement('button');
+        btn.className = 'choice';
+        btn.textContent = choice;
+        btn.onclick = () => {
+          const feedback = document.getElementById('feedbackPractice');
+          if(choice === sample.answer) {
+            feedback.textContent = '✅ 正確!';
+            feedback.style.color = 'green';
+          } else {
+            feedback.textContent = '❌ 錯誤，請再試一次。';
+            feedback.style.color = 'red';
+          }
+        };
+        card.appendChild(btn);
+      });
+
+      const feedback = document.createElement('div');
+      feedback.id = 'feedbackPractice';
+      feedback.className = 'answer';
+      card.appendChild(feedback);
+
+      practiceContainer.appendChild(card);
+    }
+
+    function renderGrammar() {
+      const grammarContainer = document.getElementById('grammarContainer');
+      grammarContainer.innerHTML = '';
+      const lessons = [
+        {title:'句型 I am / You are', content:'I am / You are 用法說明與範例...'},
+        {title:'動詞 be', content:'be 動詞變化與使用方法...'}
+      ];
+      lessons.forEach(lesson => {
+        const l = document.createElement('div');
+        l.className = 'lesson';
+        const t = document.createElement('div');
+        t.className = 'lesson-title';
+        t.textContent = lesson.title;
+        const c = document.createElement('div');
+        c.className = 'example';
+        c.textContent = lesson.content;
+        l.appendChild(t);
+        l.appendChild(c);
+        grammarContainer.appendChild(l);
+      });
+    }
+
     function showSection(id) {
       document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
       document.getElementById(id).classList.add('active');
-    }
-
-    function checkAnswer(answer) {
-      let feedback = document.getElementById('feedback');
-      if(answer === 'A Am Am-Mm-Am') {
-        feedback.textContent = '✅ 正確!';
-        feedback.style.color = 'green';
-      } else {
-        feedback.textContent = '❌ 錯誤，請再試一次。';
-        feedback.style.color = 'red';
-      }
     }
 
     function importCards() {
@@ -136,7 +187,9 @@
 
     function changeLanguage() {
       const lang = document.getElementById('languageSelect').value;
-      document.querySelectorAll('.answer').forEach(el => { el.textContent = el.dataset[lang]; });
+      document.querySelectorAll('.answer').forEach(el => { 
+        el.textContent = el.dataset[lang] || el.dataset.zh; 
+      });
       document.querySelectorAll('nav button').forEach(btn => { btn.textContent = btn.dataset[lang]; });
       document.querySelectorAll('main h2').forEach(h => {
         if(lang === 'zh') {
