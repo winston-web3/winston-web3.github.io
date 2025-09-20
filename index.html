@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Am 語言學習 App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f5f5f5; }
+    header { background: #4caf50; color: white; padding: 1em; text-align: center; }
+    nav { display: flex; justify-content: center; gap: 1em; background: #ddd; padding: .5em; }
+    nav button { padding: .5em 1em; border: none; cursor: pointer; border-radius: 5px; }
+    .section { display: none; padding: 1em; }
+    .active { display: block; }
+    .card { background: white; padding: 1em; margin: 1em 0; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+    .question { font-weight: bold; margin-bottom: .5em; }
+    .answer { margin-top: .5em; color: #333; }
+    .lesson { margin-bottom: 2.5em; }
+    .lesson-title { font-size: 1.2em; font-weight: bold; color: #4caf50; }
+    .example { margin: .5em 0; padding: .5em; background: #eef; border-radius: 5px; }
+    button.choice { margin: .3em; }
+    .quiz { margin-top: 1em; }
+    #languageSelect { margin-left: 1em; }
+    #searchInput { margin: 1em 0; padding: .5em; width: 100%; max-width: 400px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="appTitle">Am 語言學習 App</h1>
+    <label id="languageLabel">選擇語言課程: </label>
+    <select id="languageSelect" onchange="changeLanguage()">
+      <option value="zh" selected>中文</option>
+      <option value="en">English</option>
+    </select>
+  </header>
+
+  <nav>
+    <button data-zh="學習" data-en="Learn" onclick="showSection('learn')">學習</button>
+    <button data-zh="練習" data-en="Practice" onclick="showSection('practice')">練習</button>
+    <button data-zh="文法" data-en="Grammar" onclick="showSection('grammar')">文法</button>
+    <button data-zh="編輯器" data-en="Editor" onclick="showSection('editor')">編輯器</button>
+  </nav>
+
+  <main>
+    <section id="learn" class="section active">
+      <h2>學習單字</h2>
+      <input type="text" id="searchInput" placeholder="搜尋單字..." oninput="searchWord()" />
+      <div id="cardsContainer"></div>
+    </section>
+
+    <section id="practice" class="section">
+      <h2>練習</h2>
+      <div class="card" id="practiceCard">
+        <div class="question">翻譯: "I am a student."</div>
+        <button class="choice" onclick="checkAnswer('A Am Am-Mm-Am')">A Am Am-Mm-Am</button>
+        <button class="choice" onclick="checkAnswer('A Mm Am-Am')">A Mm Am-Am</button>
+        <button class="choice" onclick="checkAnswer('Am A Am-Ma')">Am A Am-Ma</button>
+        <div id="feedback" class="answer"></div>
+      </div>
+    </section>
+
+    <section id="grammar" class="section">
+      <h2>文法課程</h2>
+    </section>
+
+    <section id="editor" class="section">
+      <h2>編輯器</h2>
+      <textarea id="editorInput" rows="5" cols="40">[]</textarea>
+      <button onclick="importCards()">匯入</button>
+      <button onclick="exportCards()">匯出</button>
+      <div id="editorFeedback"></div>
+    </section>
+  </main>
+
+  <script>
+    // 改為從外部 JSON 載入完整單字
+    let words = [];
+    fetch('am_words.json')
+      .then(response => response.json())
+      .then(data => {
+        words = data;
+        renderCards();
+      });
+
+    const container = document.getElementById('cardsContainer');
+
+    function renderCards() {
+      container.innerHTML = '';
+      words.forEach(w => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.word = w.word;
+
+        const q = document.createElement('div');
+        q.className = 'question';
+        q.textContent = w.word;
+
+        const a = document.createElement('div');
+        a.className = 'answer';
+        a.dataset.zh = w.zh;
+        a.dataset.en = w.en;
+        a.textContent = w.zh;
+
+        card.appendChild(q);
+        card.appendChild(a);
+        container.appendChild(card);
+      });
+    }
+
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function checkAnswer(answer) {
+      let feedback = document.getElementById('feedback');
+      if(answer === 'A Am Am-Mm-Am') {
+        feedback.textContent = '✅ 正確!';
+        feedback.style.color = 'green';
+      } else {
+        feedback.textContent = '❌ 錯誤，請再試一次。';
+        feedback.style.color = 'red';
+      }
+    }
+
+    function importCards() {
+      const data = document.getElementById('editorInput').value;
+      localStorage.setItem('amCards', data);
+      document.getElementById('editorFeedback').textContent = '已匯入!';
+    }
+
+    function exportCards() {
+      const data = localStorage.getItem('amCards') || '[]';
+      document.getElementById('editorInput').value = data;
+      document.getElementById('editorFeedback').textContent = '已匯出!';
+    }
+
+    function changeLanguage() {
+      const lang = document.getElementById('languageSelect').value;
+      document.querySelectorAll('.answer').forEach(el => { el.textContent = el.dataset[lang]; });
+      document.querySelectorAll('nav button').forEach(btn => { btn.textContent = btn.dataset[lang]; });
+      document.querySelectorAll('main h2').forEach(h => {
+        if(lang === 'zh') {
+          if(h.parentElement.id === 'learn') h.textContent = '學習單字';
+          if(h.parentElement.id === 'practice') h.textContent = '練習';
+          if(h.parentElement.id === 'grammar') h.textContent = '文法課程';
+          if(h.parentElement.id === 'editor') h.textContent = '編輯器';
+        } else {
+          if(h.parentElement.id === 'learn') h.textContent = 'Learn Words';
+          if(h.parentElement.id === 'practice') h.textContent = 'Practice';
+          if(h.parentElement.id === 'grammar') h.textContent = 'Grammar Lessons';
+          if(h.parentElement.id === 'editor') h.textContent = 'Editor';
+        }
+      });
+    }
+
+    function searchWord() {
+      const filter = document.getElementById('searchInput').value.toUpperCase();
+      document.querySelectorAll('#cardsContainer .card').forEach(card => {
+        const word = card.dataset.word.toUpperCase();
+        card.style.display = word.includes(filter) ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
